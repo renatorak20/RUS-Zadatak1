@@ -126,11 +126,15 @@ void loop() {
 }
 
 float readDistanceCM() {
- digitalWrite(trigPin, LOW);
- delayMicroseconds(2);
- digitalWrite(trigPin, HIGH);
- delayMicroseconds(10);
- digitalWrite(trigPin, LOW);
- int duration = pulseIn(echoPin, HIGH);
- return duration * 0.034 / 2;
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+  int duration = pulseIn(echoPin, HIGH);
+  if (duration == 0) {
+    Serial.println("Nevaljan signal! Ignoriram očitanje.");
+    return -1;
+  }
+  return duration * 0.034 / 2;
 }
