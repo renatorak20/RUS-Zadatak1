@@ -1,102 +1,136 @@
-const int ntcTemperaturePin = A0;
+#include <Arduino.h>
 
-// button konfiguracija
-const int buttonPin = 2;
-volatile bool isButtonPressed = false;
-const int buttonLedPin = 4;
+// Gumb konfiguracija
+const int buttonPin0 = 3;
+const int buttonPin1 = 2;
+const int buttonPin2 = 4;
 
-// motion konfiguracija
-volatile bool isMotionDetected = false;
-unsigned long lastMotionTime = 0;
-const unsigned long motionDebounceTime = 500;
-const int motionPirPin = 3;
-const int motionLedPin = 13;
+const int buttonLedPin0 = 13;
+const int buttonLedPin1 = 12;
+const int buttonLedPin2 = 11;
+const int timerLedPin = 10;
+const int sensorLedPin = 9;
 
-// timer konfiguracija
-unsigned long previousTimerMillis = 0;
-const long timerInterval = 10000;
+volatile bool isButtonPressed0 = false;
+volatile bool isButtonPressed1 = false;
+volatile bool isButtonPressed2 = false;
+
+// Debounce konfiguracija
+unsigned long lastDebounceTime0 = 0;
+unsigned long lastDebounceTime1 = 0;
+unsigned long lastDebounceTime2 = 0;
+const unsigned long debounceDelay = 3000;
+
+// Timer configuration
 volatile bool isTimerTriggered = false;
-const int timerLedPin = 12;
+
+// Distance sensor konfiguracija 
+const int echoPin = 5;
+const int trigPin = 6;
+const int distanceThreshold = 100; // 100 cm
+const int sensorLedBlinkTimeInterval = 200;
+volatile long lastSensorBlinkTime = 0;
+volatile bool ledState = false;
+
+void buttonISR0() {
+  if (millis() - lastDebounceTime0 > debounceDelay) {
+    lastDebounceTime0 = millis();
+    isButtonPressed0 = true;
+  }
+}
+
+void buttonISR1() {
+  if (millis() - lastDebounceTime1 > debounceDelay) {
+    lastDebounceTime1 = millis();
+    isButtonPressed1 = true;
+  }
+}
+
+ISR(TIMER1_COMPA_vect) {
+  isTimerTriggered = true;
+}
 
 void setup() {
   Serial.begin(9600);
-
-  pinMode(buttonPin, INPUT);
-  pinMode(motionPirPin, INPUT);
-  pinMode(motionLedPin, OUTPUT);
+  
+  pinMode(buttonPin0, INPUT_PULLUP);
+  pinMode(buttonPin1, INPUT_PULLUP);
+  pinMode(buttonPin2, INPUT_PULLUP);
+  
+  pinMode(buttonLedPin0, OUTPUT);
+  pinMode(buttonLedPin1, OUTPUT);
+  pinMode(buttonLedPin2, OUTPUT);
   pinMode(timerLedPin, OUTPUT);
-  pinMode(buttonLedPin, OUTPUT);
+  pinMode(sensorLedPin, OUTPUT);
 
-  attachInterrupt(digitalPinToInterrupt(buttonPin), buttonISR, FALLING);
+  pinMode(echoPin, INPUT);
+  pinMode(trigPin, OUTPUT);
+  
+  attachInterrupt(digitalPinToInterrupt(buttonPin0), buttonISR0, FALLING);
+  attachInterrupt(digitalPinToInterrupt(buttonPin1), buttonISR1, FALLING);
 
-  attachInterrupt(digitalPinToInterrupt(motionPirPin), pirISR, RISING);
+  // setupanje timera
+  noInterrupts();
+  TCCR1A = 0;
+  TCCR1B = 0;
+  TCNT1  = 0;
+  OCR1A = 15624;
+  TCCR1B |= (1 << WGM12);
+  TCCR1B |= (1 << CS12) | (1 << CS10);  
+  TIMSK1 |= (1 << OCIE1A);
+  interrupts();
 }
 
 void loop() {
-  unsigned long currentMillis = millis();
 
-  // provjera PIR senzora
-  if (isMotionDetected) {
-    Serial.println("Motion detected!");
-    digitalWrite(motionLedPin, HIGH);
-    delay(3000);
-    digitalWrite(motionLedPin, LOW);
-    isMotionDetected = false;
-  }
-
-  // postavljanje zastavice za timer
-  if (currentMillis - previousTimerMillis >= timerInterval) {
-    isTimerTriggered = true;
-    previousTimerMillis = currentMillis;
-  }
-
-  // handlanje prekidima timera i gumba
-  if (isTimerTriggered && isButtonPressed) {
-      Serial.println("Timer and button triggered at the same time - handling timer first!");
-      handleTimer();
-      handleButton();
-  } else if(isTimerTriggered) {
-    handleTimer();
-  } else if (isButtonPressed) {
-    handleButton();
-  }
-
-  // izračun temperature
-  const float BETA = 3950;
-  int analogValue = analogRead(ntcTemperaturePin);
-  float celsius = 1 / (log(1 / (1023. / analogValue - 1)) / BETA + 1.0 / 298.15) - 273.15;
-
-  Serial.print("Temperature: ");
-  Serial.print(celsius);
-  Serial.println(" °C");
-
-  delay(1000);
-}
-
-void handleTimer() {
-    Serial.println("Timer triggered!");
-    digitalWrite(timerLedPin, HIGH);
-    delay(3000);
-    digitalWrite(timerLedPin, LOW);
+  if (isTimerTriggered) {
     isTimerTriggered = false;
-}
-
-void handleButton() {
-    Serial.println("Button pressed!");
-    digitalWrite(buttonLedPin, HIGH);
-    delay(3000);
-    digitalWrite(buttonLedPin, LOW);
-    isButtonPressed = false;
-}
-
-void buttonISR() {
-  isButtonPressed = true;
-}
-
-void pirISR() {
-  unsigned long currentTime = millis();
-  if (currentTime - lastMotionTime > motionDebounceTime) {
-    isMotionDetected = true;
-    lastMotionTime = currentTime;
+    digitalWrite(timerLedPin, HIGH);
+    delay(75);
+    digitalWrite(timerLedPin, LOW);
   }
+
+  if (digitalRead(buttonPin2) == LOW && millis() - lastDebounceTime2 > debounceDelay) {
+    isButtonPressed2 = true;
+    lastDebounceTime2 = millis();
+  }
+
+  if (isButtonPressed0) {
+    isButtonPressed0 = false;
+    digitalWrite(buttonLedPin0, HIGH);
+    delay(500);
+    digitalWrite(buttonLedPin0, LOW);
+  } else if (isButtonPressed1) {
+    isButtonPressed1 = false;
+    digitalWrite(buttonLedPin1, HIGH);
+    delay(500);
+    digitalWrite(buttonLedPin1, LOW);
+  } else if (isButtonPressed2) {
+    isButtonPressed2 = false;
+    digitalWrite(buttonLedPin2, HIGH);
+    delay(500);
+    digitalWrite(buttonLedPin2, LOW);
+  }
+
+  long distance = readDistanceCM();
+
+  if (distance < distanceThreshold) {
+      if (millis() - lastSensorBlinkTime >= sensorLedBlinkTimeInterval) {
+          ledState = !ledState;
+          digitalWrite(sensorLedPin, ledState ? HIGH : LOW); 
+          lastSensorBlinkTime = millis();
+      }
+  } else {
+      digitalWrite(sensorLedPin, LOW);  
+  }
+}
+
+float readDistanceCM() {
+ digitalWrite(trigPin, LOW);
+ delayMicroseconds(2);
+ digitalWrite(trigPin, HIGH);
+ delayMicroseconds(10);
+ digitalWrite(trigPin, LOW);
+ int duration = pulseIn(echoPin, HIGH);
+ return duration * 0.034 / 2;
 }
