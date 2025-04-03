@@ -1,5 +1,5 @@
 /**
- * @file ButtonLedSensorSystem.ino
+ * @file zadatak1.ino
  *
  * @mainpage Button-LED-Sensor System Example
  *
