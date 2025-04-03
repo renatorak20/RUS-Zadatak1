@@ -22,7 +22,7 @@
  * - Timer interrupt is used for periodic actions like LED blinking.
  *
  * @section author Author
- * - Created by Renato Rak on 04/03/2025.
+ * - Created by Renato Rak on 03/04/2025.
  */
 
 // Libraries
