@@ -188,11 +188,15 @@ void loop() {
  * @return Distance in centimeters.
  */
 float readDistanceCM() {
- digitalWrite(trigPin, LOW); ///< Set Trig pin low.
- delayMicroseconds(2); ///< Wait for 2 microseconds.
- digitalWrite(trigPin, HIGH); ///< Send trigger pulse.
- delayMicroseconds(10); ///< Wait for 10 microseconds.
- digitalWrite(trigPin, LOW); ///< Set Trig pin low again.
- int duration = pulseIn(echoPin, HIGH); ///< Measure the duration of the pulse.
- return duration * 0.034 / 2; ///< Calculate and return distance in centimeters.
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+  int duration = pulseIn(echoPin, HIGH);
+  if (duration == 0) {
+    Serial.println("Nevaljan signal! Ignoriram očitanje.");
+    return -1;
+  }
+  return duration * 0.034 / 2;
 }
